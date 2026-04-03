@@ -457,6 +457,7 @@ async def serve_auth():
             font-weight: 700;
             cursor: pointer;
             color: #707070;
+            transition: all 0.3s;
         }
         .auth-tab.active {
             color: #021e79;
@@ -472,6 +473,7 @@ async def serve_auth():
             font-size: 13px;
             font-weight: 700;
             margin-bottom: 6px;
+            color: #333;
         }
         .form-group input {
             width: 100%;
@@ -480,6 +482,7 @@ async def serve_auth():
             border-radius: 10px;
             font-size: 15px;
             outline: none;
+            transition: border-color 0.3s;
         }
         .form-group input:focus { border-color: #021e79; }
         .btn-auth {
@@ -492,6 +495,7 @@ async def serve_auth():
             border-radius: 10px;
             font-size: 16px;
             cursor: pointer;
+            transition: background 0.3s;
         }
         .btn-auth:hover { background: #e6ac00; }
         .error-message {
@@ -501,6 +505,7 @@ async def serve_auth():
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
+            font-size: 13px;
         }
         .success-message {
             background: #dcfce7;
@@ -509,6 +514,7 @@ async def serve_auth():
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
+            font-size: 13px;
         }
         .error-message.show, .success-message.show { display: block; }
         .auth-footer {
@@ -518,7 +524,7 @@ async def serve_auth():
             font-size: 12px;
             color: #707070;
         }
-        .auth-footer a { color: #021e79; text-decoration: none; font-weight: 700; }
+        .auth-footer a { color: #021e79; text-decoration: none; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -535,6 +541,8 @@ async def serve_auth():
     <div class="auth-body">
         <div id="errorMsg" class="error-message"></div>
         <div id="successMsg" class="success-message"></div>
+        
+        <!-- Formulaire de connexion -->
         <form id="loginForm" class="auth-form active">
             <div class="form-group">
                 <label>Email</label>
@@ -546,6 +554,8 @@ async def serve_auth():
             </div>
             <button type="submit" class="btn-auth">Se connecter</button>
         </form>
+        
+        <!-- Formulaire d'inscription -->
         <form id="registerForm" class="auth-form">
             <div class="form-group">
                 <label>Nom complet</label>
@@ -556,59 +566,80 @@ async def serve_auth():
                 <input type="email" id="regEmail" required placeholder="votre@email.com">
             </div>
             <div class="form-group">
-                <label>Téléphone</label>
+                <label>Téléphone (optionnel)</label>
                 <input type="tel" id="regPhone" placeholder="6XX XX XX XX">
             </div>
             <div class="form-group">
                 <label>Mot de passe</label>
-                <input type="password" id="regPassword" required placeholder="Min. 6 caractères">
+                <input type="password" id="regPassword" required placeholder="Minimum 6 caractères">
             </div>
             <button type="submit" class="btn-auth">Créer mon compte</button>
         </form>
     </div>
     <div class="auth-footer">
-        <a href="#" id="forgotPassword">Mot de passe oublié ?</a>
+        <a id="forgotPassword">Mot de passe oublié ?</a>
     </div>
 </div>
+
 <script>
 const API = window.location.origin;
+
+// Gestion des onglets
 document.querySelectorAll('.auth-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', function() {
+        // Retirer la classe active de tous les onglets
         document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        // Ajouter la classe active à l'onglet cliqué
+        this.classList.add('active');
+        
+        // Cacher tous les formulaires
         document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab + 'Form').classList.add('active');
+        
+        // Afficher le formulaire correspondant
+        const tabName = this.getAttribute('data-tab');
+        document.getElementById(tabName + 'Form').classList.add('active');
+        
+        // Cacher les messages
         hideMessages();
     });
 });
+
 function hideMessages() {
     document.getElementById('errorMsg').classList.remove('show');
     document.getElementById('successMsg').classList.remove('show');
 }
+
 function showError(msg) {
     const errorEl = document.getElementById('errorMsg');
     errorEl.textContent = msg;
     errorEl.classList.add('show');
     setTimeout(() => errorEl.classList.remove('show'), 5000);
 }
+
 function showSuccess(msg) {
     const successEl = document.getElementById('successMsg');
     successEl.textContent = msg;
     successEl.classList.add('show');
     setTimeout(() => successEl.classList.remove('show'), 3000);
 }
+
+// Connexion
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     hideMessages();
+    
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    
     try {
         const res = await fetch(API + '/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
+        
         const data = await res.json();
+        
         if (res.ok) {
             localStorage.setItem('userToken', data.token);
             localStorage.setItem('userEmail', data.user.email);
@@ -618,43 +649,79 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             showError(data.detail || 'Email ou mot de passe incorrect');
         }
     } catch (err) {
-        showError('Erreur de connexion');
+        showError('Erreur de connexion. Veuillez réessayer.');
     }
 });
+
+// Inscription
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     hideMessages();
-    const name = document.getElementById('regName').value;
-    const email = document.getElementById('regEmail').value;
-    const phone = document.getElementById('regPhone').value;
+    
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
     const password = document.getElementById('regPassword').value;
-    if (password.length < 6) {
-        showError('Mot de passe trop court (min 6 caractères)');
+    
+    if (name === '') {
+        showError('Veuillez entrer votre nom');
         return;
     }
+    
+    if (email === '') {
+        showError('Veuillez entrer votre email');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showError('Le mot de passe doit contenir au moins 6 caractères');
+        return;
+    }
+    
     try {
         const res = await fetch(API + '/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, phone, password })
         });
+        
         const data = await res.json();
+        
         if (res.ok) {
-            showSuccess('Compte créé ! Connectez-vous.');
+            showSuccess('Compte créé avec succès ! Vous pouvez maintenant vous connecter.');
+            // Réinitialiser le formulaire d'inscription
+            document.getElementById('regName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('regPassword').value = '';
+            
+            // Basculer vers l'onglet connexion après 2 secondes
             setTimeout(() => {
                 document.querySelector('.auth-tab[data-tab="login"]').click();
                 document.getElementById('loginEmail').value = email;
             }, 2000);
         } else {
-            showError(data.detail || 'Erreur');
+            showError(data.detail || 'Erreur lors de l\'inscription. Email peut-être déjà utilisé.');
         }
     } catch (err) {
-        showError('Erreur serveur');
+        console.error('Erreur:', err);
+        showError('Erreur serveur. Veuillez réessayer.');
     }
 });
+
+// Mot de passe oublié
 document.getElementById('forgotPassword').addEventListener('click', (e) => {
     e.preventDefault();
-    alert('Contactez l\'administrateur');
+    const email = prompt('Entrez votre email pour réinitialiser votre mot de passe :');
+    if (email && email.trim()) {
+        fetch(API + '/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim() })
+        })
+        .then(() => alert('Si cet email existe, un lien de réinitialisation vous a été envoyé.'))
+        .catch(() => alert('Erreur, veuillez réessayer.'));
+    }
 });
 </script>
 </body>
