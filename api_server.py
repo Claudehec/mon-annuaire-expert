@@ -281,7 +281,9 @@ async def read_root():
 async def read_index():
     with open("index.html", "r", encoding="utf-8") as f:
         return f.read()
-        # ===== AUTHENTIFICATION =====
+
+
+# ===== AUTHENTIFICATION UTILISATEURS =====
 import hashlib
 import secrets
 from datetime import datetime, timedelta
@@ -320,25 +322,22 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     name: str
     email: str
-    phone: Optional[str] = ""
+    phone: str = ""
     password: str
 
 class ForgotPasswordRequest(BaseModel):
     email: str
 
-# Routes d'authentification
 @app.post("/api/auth/register")
 async def register(request: RegisterRequest):
     conn = sqlite3.connect("onecca.db")
     cursor = conn.cursor()
     
-    # Vérifier si l'email existe déjà
     cursor.execute("SELECT id FROM users WHERE email = ?", (request.email,))
     if cursor.fetchone():
         conn.close()
         raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
     
-    # Créer l'utilisateur
     password_hash = hash_password(request.password)
     cursor.execute("""
         INSERT INTO users (name, email, phone, password_hash)
@@ -393,43 +392,11 @@ async def forgot_password(request: ForgotPasswordRequest):
             WHERE email = ?
         """, (token, expiry, request.email))
         conn.commit()
-        # Ici vous pouvez envoyer un vrai email
         print(f"Reset token for {request.email}: {token}")
     
     conn.close()
     return {"success": True}
 
-@app.get("/api/auth/verify")
-async def verify_auth():
-    # Vérifier si l'utilisateur est connecté via token dans header
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        return {"authenticated": False}
-    
-    token = auth_header.replace("Bearer ", "")
-    # Stocker les tokens en mémoire (simple)
-    # Pour production, utilisez JWT ou une table de sessions
-    return {"authenticated": True}
-
-# Middleware pour vérifier l'auth sur certaines routes
-from fastapi import Request
-
-@app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    # Routes publiques
-    public_paths = ["/", "/index.html", "/logoonecca.png", "/api/members", 
-                    "/api/contact", "/api/auth/login", "/api/auth/register",
-                    "/api/auth/forgot-password", "/auth.html"]
-    
-    if any(request.url.path.startswith(path) for path in public_paths):
-        return await call_next(request)
-    
-    # Vérifier le token
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        return JSONResponse(status_code=401, content={"error": "Non authentifié"})
-    
-    return await call_next(request)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=PORT)
