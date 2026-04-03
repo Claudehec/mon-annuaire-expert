@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Connexion ONECCA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #021e79;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h2 {
+            color: #021e79;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #ffbf00;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #e6ac00;
+        }
+        .tab {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab button {
+            flex: 1;
+            margin: 0 5px;
+            background: #eee;
+            color: #333;
+        }
+        .tab button.active {
+            background: #021e79;
+            color: white;
+        }
+        .form {
+            display: none;
+        }
+        .form.active {
+            display: block;
+        }
+        .msg {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+        }
+        .msg.error {
+            background: #ffebee;
+            color: #c62828;
+            display: block;
+        }
+        .msg.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        .footer a {
+            color: #021e79;
+            cursor: pointer;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>ONECCA</h2>
+    
+    <div class="tab">
+        <button id="btnLogin" class="active">Connexion</button>
+        <button id="btnRegister">Inscription</button>
+    </div>
+    
+    <div id="msg" class="msg"></div>
+    
+    <div id="loginForm" class="form active">
+        <input type="email" id="loginEmail" placeholder="Email">
+        <input type="password" id="loginPassword" placeholder="Mot de passe">
+        <button id="doLogin">Se connecter</button>
+    </div>
+    
+    <div id="registerForm" class="form">
+        <input type="text" id="regName" placeholder="Nom complet">
+        <input type="email" id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Mot de passe (6+ caractères)">
+        <button id="doRegister">Créer mon compte</button>
+    </div>
+    
+    <div class="footer">
+        <a id="forgotLink">Mot de passe oublié ?</a>
+    </div>
+</div>
+
+<script>
+const API = window.location.origin;
+
+// Onglets
+document.getElementById('btnLogin').onclick = () => {
+    document.getElementById('btnLogin').classList.add('active');
+    document.getElementById('btnRegister').classList.remove('active');
+    document.getElementById('loginForm').classList.add('active');
+    document.getElementById('registerForm').classList.remove('active');
+    document.getElementById('msg').className = 'msg';
+    document.getElementById('msg').style.display = 'none';
+};
+
+document.getElementById('btnRegister').onclick = () => {
+    document.getElementById('btnRegister').classList.add('active');
+    document.getElementById('btnLogin').classList.remove('active');
+    document.getElementById('registerForm').classList.add('active');
+    document.getElementById('loginForm').classList.remove('active');
+    document.getElementById('msg').className = 'msg';
+    document.getElementById('msg').style.display = 'none';
+};
+
+function showMessage(text, isError) {
+    const msg = document.getElementById('msg');
+    msg.textContent = text;
+    msg.className = 'msg ' + (isError ? 'error' : 'success');
+    setTimeout(() => {
+        msg.className = 'msg';
+    }, 3000);
+}
+
+// INSCRIPTION
+document.getElementById('doRegister').onclick = async () => {
+    const name = document.getElementById('regName').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    
+    if (!name || !email || password.length < 6) {
+        showMessage('Remplissez tous les champs (mot de passe 6+ caractères)', true);
+        return;
+    }
+    
+    try {
+        const res = await fetch(API + '/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, phone: '', password })
+        });
+        const data = await res.json();
+        
+        if (data.success === true) {
+            showMessage('Compte créé ! Connectez-vous', false);
+            document.getElementById('btnLogin').click();
+            document.getElementById('loginEmail').value = email;
+        } else {
+            showMessage(data.detail || 'Erreur lors de l\'inscription', true);
+        }
+    } catch (err) {
+        showMessage('Erreur serveur', true);
+    }
+};
+
+// CONNEXION
+document.getElementById('doLogin').onclick = async () => {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+        showMessage('Veuillez entrer email et mot de passe', true);
+        return;
+    }
+    
+    try {
+        const res = await fetch(API + '/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        
+        if (data.success === true) {
+            localStorage.setItem('userToken', data.token);
+            localStorage.setItem('userEmail', data.user.email);
+            localStorage.setItem('userName', data.user.name);
+            window.location.href = '/?login=success';
+        } else {
+            showMessage(data.detail || 'Email ou mot de passe incorrect', true);
+        }
+    } catch (err) {
+        showMessage('Erreur de connexion', true);
+    }
+};
+
+// Mot de passe oublié
+document.getElementById('forgotLink').onclick = () => {
+    alert('Contactez l\'administrateur pour réinitialiser votre mot de passe.');
+};
+</script>
+</body>
+</html>
