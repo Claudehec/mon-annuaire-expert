@@ -1480,6 +1480,62 @@ let RAW = { liberaux: [], societes: [], salaries: [], stagiaires: [] };
 let showContacts = false;
 let contactRequests = [];
 
+  // ===== GESTION UTILISATEUR =====
+let isUserLoggedIn = false;
+let currentUser = null;
+
+function checkUserAuth() {
+    const token = localStorage.getItem('userToken');
+    const userName = localStorage.getItem('userName');
+    
+    if (token && userName) {
+        isUserLoggedIn = true;
+        currentUser = { name: userName, email: localStorage.getItem('userEmail') };
+        document.getElementById('userMenu').style.display = 'block';
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('userName').textContent = userName.split(' ')[0];
+        // Les membres connectés voient les coordonnées
+        showContacts = true;
+    } else {
+        isUserLoggedIn = false;
+        currentUser = null;
+        document.getElementById('userMenu').style.display = 'none';
+        document.getElementById('loginBtn').style.display = 'flex';
+    }
+}
+
+document.getElementById('logoutBtn')?.addEventListener('click', () => {
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userPhone');
+    window.location.reload();
+});
+
+// Vérifier l'état de connexion au chargement
+checkUserAuth();
+
+// Si l'utilisateur vient de se connecter
+if (window.location.search.includes('login=success')) {
+    checkUserAuth();
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
+// Modifier la fonction loadMembers pour prendre en compte l'auth utilisateur
+const originalLoadMembers = loadMembers;
+window.loadMembers = async function() {
+    if (isAdmin) {
+        const data = await apiGet('/api/admin/members', true);
+        RAW = data.members || data;
+        showContacts = true;
+    } else {
+        const data = await apiGet('/api/members', false);
+        RAW = data.members || data;
+        // Si utilisateur connecté, afficher les coordonnées
+        showContacts = isUserLoggedIn || data.show_contacts || false;
+    }
+};
+
 // ===== DARK MODE =====
 const toggle = document.querySelector('[data-theme-toggle]');
 const htmlEl = document.documentElement;
