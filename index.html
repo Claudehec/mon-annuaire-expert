@@ -1438,7 +1438,7 @@ a { color: inherit; text-decoration: none; }
 'use strict';
 
 // ===== API CONFIG =====
-const API = "port/8000".startsWith("__") ? "http://localhost:8000" : "port/8000";
+const API = "";
 const ADMIN_KEY = 'ONECCA2026';
 const urlParams = new URLSearchParams(window.location.search);
 const isAdmin = (urlParams.get('admin') === ADMIN_KEY);
