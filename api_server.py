@@ -281,6 +281,155 @@ async def read_root():
 async def read_index():
     with open("index.html", "r", encoding="utf-8") as f:
         return f.read()
+        # ===== AUTHENTIFICATION =====
+import hashlib
+import secrets
+from datetime import datetime, timedelta
+
+# Table des utilisateurs
+def init_auth_db():
+    conn = sqlite3.connect("onecca.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            phone TEXT,
+            password_hash TEXT NOT NULL,
+            reset_token TEXT,
+            reset_token_expiry TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_auth_db()
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def generate_token():
+    return secrets.token_urlsafe(32)
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    phone: Optional[str] = ""
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+# Routes d'authentification
+@app.post("/api/auth/register")
+async def register(request: RegisterRequest):
+    conn = sqlite3.connect("onecca.db")
+    cursor = conn.cursor()
+    
+    # Vérifier si l'email existe déjà
+    cursor.execute("SELECT id FROM users WHERE email = ?", (request.email,))
+    if cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
+    
+    # Créer l'utilisateur
+    password_hash = hash_password(request.password)
+    cursor.execute("""
+        INSERT INTO users (name, email, phone, password_hash)
+        VALUES (?, ?, ?, ?)
+    """, (request.name, request.email, request.phone, password_hash))
+    
+    user_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return {"success": True, "user_id": user_id}
+
+@app.post("/api/auth/login")
+async def login(request: LoginRequest):
+    conn = sqlite3.connect("onecca.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM users WHERE email = ?", (request.email,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user or user["password_hash"] != hash_password(request.password):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    
+    token = generate_token()
+    
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "id": user["id"],
+            "name": user["name"],
+            "email": user["email"],
+            "phone": user["phone"]
+        }
+    }
+
+@app.post("/api/auth/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    conn = sqlite3.connect("onecca.db")
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT id FROM users WHERE email = ?", (request.email,))
+    user = cursor.fetchone()
+    
+    if user:
+        token = generate_token()
+        expiry = (datetime.now() + timedelta(hours=1)).isoformat()
+        cursor.execute("""
+            UPDATE users SET reset_token = ?, reset_token_expiry = ?
+            WHERE email = ?
+        """, (token, expiry, request.email))
+        conn.commit()
+        # Ici vous pouvez envoyer un vrai email
+        print(f"Reset token for {request.email}: {token}")
+    
+    conn.close()
+    return {"success": True}
+
+@app.get("/api/auth/verify")
+async def verify_auth():
+    # Vérifier si l'utilisateur est connecté via token dans header
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return {"authenticated": False}
+    
+    token = auth_header.replace("Bearer ", "")
+    # Stocker les tokens en mémoire (simple)
+    # Pour production, utilisez JWT ou une table de sessions
+    return {"authenticated": True}
+
+# Middleware pour vérifier l'auth sur certaines routes
+from fastapi import Request
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    # Routes publiques
+    public_paths = ["/", "/index.html", "/logoonecca.png", "/api/members", 
+                    "/api/contact", "/api/auth/login", "/api/auth/register",
+                    "/api/auth/forgot-password", "/auth.html"]
+    
+    if any(request.url.path.startswith(path) for path in public_paths):
+        return await call_next(request)
+    
+    # Vérifier le token
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return JSONResponse(status_code=401, content={"error": "Non authentifié"})
+    
+    return await call_next(request)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=PORT)
