@@ -398,5 +398,269 @@ async def forgot_password(request: ForgotPasswordRequest):
     return {"success": True}
 
 
+
+@app.get("/auth.html", response_class=HTMLResponse)
+async def serve_auth():
+    return """
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - ONECCA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #021e79 0%, #011654 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .auth-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 440px;
+            overflow: hidden;
+        }
+        .auth-header {
+            background: #021e79;
+            padding: 30px;
+            text-align: center;
+        }
+        .auth-header img {
+            height: 60px;
+            margin-bottom: 15px;
+        }
+        .auth-header h1 {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .auth-header p {
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+        }
+        .auth-tabs {
+            display: flex;
+            border-bottom: 2px solid #eef2f6;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            font-weight: 700;
+            cursor: pointer;
+            color: #707070;
+        }
+        .auth-tab.active {
+            color: #021e79;
+            border-bottom: 2px solid #ffbf00;
+            margin-bottom: -2px;
+        }
+        .auth-body { padding: 30px; }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #dfe1e6;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+        }
+        .form-group input:focus { border-color: #021e79; }
+        .btn-auth {
+            width: 100%;
+            padding: 14px;
+            background: #ffbf00;
+            color: #212326;
+            font-weight: 900;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn-auth:hover { background: #e6ac00; }
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .success-message {
+            background: #dcfce7;
+            color: #16a34a;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .error-message.show, .success-message.show { display: block; }
+        .auth-footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fb;
+            font-size: 12px;
+            color: #707070;
+        }
+        .auth-footer a { color: #021e79; text-decoration: none; font-weight: 700; }
+    </style>
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-header">
+        <img src="logoonecca.png" alt="ONECCA" onerror="this.style.display='none'">
+        <h1>ONECCA</h1>
+        <p>Ordre National des Experts-Comptables du Cameroun</p>
+    </div>
+    <div class="auth-tabs">
+        <div class="auth-tab active" data-tab="login">Connexion</div>
+        <div class="auth-tab" data-tab="register">Inscription</div>
+    </div>
+    <div class="auth-body">
+        <div id="errorMsg" class="error-message"></div>
+        <div id="successMsg" class="success-message"></div>
+        <form id="loginForm" class="auth-form active">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" required placeholder="votre@email.com">
+            </div>
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" id="loginPassword" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn-auth">Se connecter</button>
+        </form>
+        <form id="registerForm" class="auth-form">
+            <div class="form-group">
+                <label>Nom complet</label>
+                <input type="text" id="regName" required placeholder="Votre nom">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="regEmail" required placeholder="votre@email.com">
+            </div>
+            <div class="form-group">
+                <label>Téléphone</label>
+                <input type="tel" id="regPhone" placeholder="6XX XX XX XX">
+            </div>
+            <div class="form-group">
+                <label>Mot de passe</label>
+                <input type="password" id="regPassword" required placeholder="Min. 6 caractères">
+            </div>
+            <button type="submit" class="btn-auth">Créer mon compte</button>
+        </form>
+    </div>
+    <div class="auth-footer">
+        <a href="#" id="forgotPassword">Mot de passe oublié ?</a>
+    </div>
+</div>
+<script>
+const API = window.location.origin;
+document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab + 'Form').classList.add('active');
+        hideMessages();
+    });
+});
+function hideMessages() {
+    document.getElementById('errorMsg').classList.remove('show');
+    document.getElementById('successMsg').classList.remove('show');
+}
+function showError(msg) {
+    const errorEl = document.getElementById('errorMsg');
+    errorEl.textContent = msg;
+    errorEl.classList.add('show');
+    setTimeout(() => errorEl.classList.remove('show'), 5000);
+}
+function showSuccess(msg) {
+    const successEl = document.getElementById('successMsg');
+    successEl.textContent = msg;
+    successEl.classList.add('show');
+    setTimeout(() => successEl.classList.remove('show'), 3000);
+}
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideMessages();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    try {
+        const res = await fetch(API + '/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            localStorage.setItem('userToken', data.token);
+            localStorage.setItem('userEmail', data.user.email);
+            localStorage.setItem('userName', data.user.name);
+            window.location.href = '/?login=success';
+        } else {
+            showError(data.detail || 'Email ou mot de passe incorrect');
+        }
+    } catch (err) {
+        showError('Erreur de connexion');
+    }
+});
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideMessages();
+    const name = document.getElementById('regName').value;
+    const email = document.getElementById('regEmail').value;
+    const phone = document.getElementById('regPhone').value;
+    const password = document.getElementById('regPassword').value;
+    if (password.length < 6) {
+        showError('Mot de passe trop court (min 6 caractères)');
+        return;
+    }
+    try {
+        const res = await fetch(API + '/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, phone, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showSuccess('Compte créé ! Connectez-vous.');
+            setTimeout(() => {
+                document.querySelector('.auth-tab[data-tab="login"]').click();
+                document.getElementById('loginEmail').value = email;
+            }, 2000);
+        } else {
+            showError(data.detail || 'Erreur');
+        }
+    } catch (err) {
+        showError('Erreur serveur');
+    }
+});
+document.getElementById('forgotPassword').addEventListener('click', (e) => {
+    e.preventDefault();
+    alert('Contactez l\'administrateur');
+});
+</script>
+</body>
+</html>
+    """
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=PORT)
