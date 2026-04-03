@@ -270,5 +270,17 @@ def delete_contact(contact_id: int, x_admin_auth: str = Header(default="")):
     db.commit()
     return {"deleted": contact_id}
 
+from fastapi.responses import HTMLResponse
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+@app.get("/index.html", response_class=HTMLResponse)
+async def read_index():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=PORT)
