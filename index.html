@@ -2232,11 +2232,12 @@ async function loadMembers() {
   if (isAdmin) {
     const data = await apiGet('/api/admin/members', true);
     RAW = data.members || data;
-    showContacts = true; // Admin always sees contacts
+    showContacts = true;
   } else {
     const data = await apiGet('/api/members', false);
     RAW = data.members || data;
-    showContacts = data.show_contacts || false;
+    // Si utilisateur connecté, afficher les coordonnées
+    showContacts = isUserLoggedIn || data.show_contacts || false;
   }
 }
 
