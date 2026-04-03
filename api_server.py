@@ -408,24 +408,33 @@ async def serve_auth():
     <meta charset="UTF-8">
     <title>Connexion ONECCA</title>
     <style>
-        body { font-family: Arial; background: #021e79; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .box { background: white; padding: 30px; border-radius: 20px; width: 350px; }
-        h2 { color: #021e79; margin-top: 0; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 12px; background: #ffbf00; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        body { font-family: Arial, sans-serif; background: #021e79; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .box { background: white; padding: 30px; border-radius: 20px; width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        h2 { color: #021e79; margin-top: 0; text-align: center; }
+        .logo { text-align: center; margin-bottom: 20px; }
+        .logo img { height: 50px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #ffbf00; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background: #e6ac00; }
         .tab { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab button { background: #eee; color: #333; }
-        .tab .active { background: #021e79; color: white; }
+        .tab button { background: #f0f0f0; color: #333; margin: 0; }
+        .tab button.active { background: #021e79; color: white; }
         .form { display: none; }
         .form.active { display: block; }
-        .msg { padding: 10px; margin: 10px 0; border-radius: 5px; display: none; }
-        .error { background: #fee; color: red; }
-        .success { background: #efe; color: green; }
+        .msg { padding: 10px; margin: 10px 0; border-radius: 8px; display: none; font-size: 14px; }
+        .error { background: #fee2e2; color: #dc2626; }
+        .success { background: #dcfce7; color: #16a34a; }
+        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #999; }
+        .footer a { color: #021e79; text-decoration: none; cursor: pointer; }
     </style>
 </head>
 <body>
 <div class="box">
+    <div class="logo">
+        <img src="logoonecca.png" alt="ONECCA" onerror="this.style.display='none'">
+    </div>
     <h2>ONECCA</h2>
+    
     <div class="tab">
         <button id="tabLogin" class="active">Connexion</button>
         <button id="tabRegister">Inscription</button>
@@ -440,18 +449,22 @@ async def serve_auth():
     <div id="registerForm" class="form">
         <input type="text" id="regName" placeholder="Nom complet">
         <input type="email" id="regEmail" placeholder="Email">
-        <input type="tel" id="regPhone" placeholder="Téléphone">
+        <input type="tel" id="regPhone" placeholder="Téléphone (optionnel)">
         <input type="password" id="regPassword" placeholder="Mot de passe (min 6)">
         <button id="doRegister">Créer mon compte</button>
     </div>
     
     <div id="msg" class="msg"></div>
+    <div class="footer">
+        <a id="forgotLink">Mot de passe oublié ?</a>
+    </div>
 </div>
 
 <script>
-const API = window.location.origin;
+var API = window.location.origin;
 
-document.getElementById('tabLogin').onclick = () => {
+// Onglets
+document.getElementById('tabLogin').onclick = function() {
     document.getElementById('tabLogin').classList.add('active');
     document.getElementById('tabRegister').classList.remove('active');
     document.getElementById('loginForm').classList.add('active');
@@ -459,7 +472,7 @@ document.getElementById('tabLogin').onclick = () => {
     document.getElementById('msg').style.display = 'none';
 };
 
-document.getElementById('tabRegister').onclick = () => {
+document.getElementById('tabRegister').onclick = function() {
     document.getElementById('tabRegister').classList.add('active');
     document.getElementById('tabLogin').classList.remove('active');
     document.getElementById('registerForm').classList.add('active');
@@ -467,66 +480,94 @@ document.getElementById('tabRegister').onclick = () => {
     document.getElementById('msg').style.display = 'none';
 };
 
-function showMsg(text, isError) {
-    const msg = document.getElementById('msg');
-    msg.textContent = text;
-    msg.className = 'msg ' + (isError ? 'error' : 'success');
-    msg.style.display = 'block';
-    setTimeout(() => msg.style.display = 'none', 3000);
+function showMessage(text, isError) {
+    var msgDiv = document.getElementById('msg');
+    msgDiv.textContent = text;
+    msgDiv.className = 'msg ' + (isError ? 'error' : 'success');
+    msgDiv.style.display = 'block';
+    setTimeout(function() {
+        msgDiv.style.display = 'none';
+    }, 3000);
 }
 
 // Inscription
-document.getElementById('doRegister').onclick = async () => {
-    const name = document.getElementById('regName').value;
-    const email = document.getElementById('regEmail').value;
-    const phone = document.getElementById('regPhone').value;
-    const password = document.getElementById('regPassword').value;
+document.getElementById('doRegister').onclick = function() {
+    var name = document.getElementById('regName').value;
+    var email = document.getElementById('regEmail').value;
+    var phone = document.getElementById('regPhone').value;
+    var password = document.getElementById('regPassword').value;
     
     if (!name || !email || password.length < 6) {
-        showMsg('Remplissez tous les champs (mot de passe 6+ caractères)', true);
+        showMessage('Remplissez tous les champs (mot de passe 6+ caracteres)', true);
         return;
     }
     
-    try {
-        const res = await fetch(API + '/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone, password })
-        });
-        const data = await res.json();
-        if (res.ok) {
-            showMsg('Compte créé ! Connectez-vous', false);
+    fetch(API + '/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email, phone: phone, password: password })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.success) {
+            showMessage('Compte cree ! Connectez-vous', false);
             document.getElementById('tabLogin').click();
+            document.getElementById('loginEmail').value = email;
         } else {
-            showMsg(data.detail || 'Erreur', true);
+            showMessage(data.detail || 'Erreur lors de l\'inscription', true);
         }
-    } catch(err) {
-        showMsg('Erreur serveur', true);
-    }
+    })
+    .catch(function(err) {
+        showMessage('Erreur serveur', true);
+    });
 };
 
 // Connexion
-document.getElementById('doLogin').onclick = async () => {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+document.getElementById('doLogin').onclick = function() {
+    var email = document.getElementById('loginEmail').value;
+    var password = document.getElementById('loginPassword').value;
     
-    try {
-        const res = await fetch(API + '/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-        if (res.ok) {
+    if (!email || !password) {
+        showMessage('Veuillez entrer email et mot de passe', true);
+        return;
+    }
+    
+    fetch(API + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.success) {
             localStorage.setItem('userToken', data.token);
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userName', data.user.name);
             window.location.href = '/?login=success';
         } else {
-            showMsg(data.detail || 'Email ou mot de passe incorrect', true);
+            showMessage(data.detail || 'Email ou mot de passe incorrect', true);
         }
-    } catch(err) {
-        showMsg('Erreur de connexion', true);
+    })
+    .catch(function(err) {
+        showMessage('Erreur de connexion', true);
+    });
+};
+
+// Mot de passe oublie
+document.getElementById('forgotLink').onclick = function() {
+    var email = prompt('Entrez votre email:');
+    if (email) {
+        fetch(API + '/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        })
+        .then(function() {
+            alert('Un email vous a ete envoye si le compte existe');
+        })
+        .catch(function() {
+            alert('Erreur');
+        });
     }
 };
 </script>
