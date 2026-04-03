@@ -408,55 +408,151 @@ async def serve_auth():
     <meta charset="UTF-8">
     <title>Connexion ONECCA</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #021e79; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .box { background: white; padding: 30px; border-radius: 20px; width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        h2 { color: #021e79; margin-top: 0; text-align: center; }
-        .logo { text-align: center; margin-bottom: 20px; }
-        .logo img { height: 50px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-        button { width: 100%; padding: 12px; background: #ffbf00; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background: #e6ac00; }
-        .tab { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab button { background: #f0f0f0; color: #333; margin: 0; }
-        .tab button.active { background: #021e79; color: white; }
-        .form { display: none; }
-        .form.active { display: block; }
-        .msg { padding: 10px; margin: 10px 0; border-radius: 8px; display: none; font-size: 14px; }
-        .error { background: #fee2e2; color: #dc2626; }
-        .success { background: #dcfce7; color: #16a34a; }
-        .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #999; }
-        .footer a { color: #021e79; text-decoration: none; cursor: pointer; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #021e79 0%, #011654 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .header {
+            background: #021e79;
+            padding: 30px;
+            text-align: center;
+        }
+        .header img {
+            height: 50px;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            color: white;
+            font-size: 20px;
+        }
+        .tabs {
+            display: flex;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            background: #f5f5f5;
+            border: none;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: white;
+            color: #021e79;
+            border-bottom: 3px solid #ffbf00;
+        }
+        .form-container {
+            padding: 30px;
+        }
+        .form {
+            display: none;
+        }
+        .form.active {
+            display: block;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #ffbf00;
+            color: #212326;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #e6ac00;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+        }
+        .message.error {
+            background: #fee2e2;
+            color: #dc2626;
+            display: block;
+        }
+        .message.success {
+            background: #dcfce7;
+            color: #16a34a;
+            display: block;
+        }
+        .footer {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fb;
+            font-size: 12px;
+        }
+        .footer a {
+            color: #021e79;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-<div class="box">
-    <div class="logo">
+<div class="container">
+    <div class="header">
         <img src="logoonecca.png" alt="ONECCA" onerror="this.style.display='none'">
-    </div>
-    <h2>ONECCA</h2>
-    
-    <div class="tab">
-        <button id="tabLogin" class="active">Connexion</button>
-        <button id="tabRegister">Inscription</button>
+        <h1>ONECCA</h1>
     </div>
     
-    <div id="loginForm" class="form active">
-        <input type="email" id="loginEmail" placeholder="Email">
-        <input type="password" id="loginPassword" placeholder="Mot de passe">
-        <button id="doLogin">Se connecter</button>
+    <div class="tabs">
+        <button class="tab-btn active" id="btnLogin">Connexion</button>
+        <button class="tab-btn" id="btnRegister">Inscription</button>
     </div>
     
-    <div id="registerForm" class="form">
-        <input type="text" id="regName" placeholder="Nom complet">
-        <input type="email" id="regEmail" placeholder="Email">
-        <input type="tel" id="regPhone" placeholder="Téléphone (optionnel)">
-        <input type="password" id="regPassword" placeholder="Mot de passe (min 6)">
-        <button id="doRegister">Créer mon compte</button>
+    <div class="form-container">
+        <div id="message" class="message"></div>
+        
+        <div id="loginForm" class="form active">
+            <input type="email" id="email" placeholder="Email" autocomplete="off">
+            <input type="password" id="password" placeholder="Mot de passe">
+            <button id="submitLogin">Se connecter</button>
+        </div>
+        
+        <div id="registerForm" class="form">
+            <input type="text" id="regName" placeholder="Nom complet">
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="tel" id="regPhone" placeholder="Téléphone (optionnel)">
+            <input type="password" id="regPassword" placeholder="Mot de passe (min 6)">
+            <button id="submitRegister">Créer mon compte</button>
+        </div>
     </div>
     
-    <div id="msg" class="msg"></div>
     <div class="footer">
-        <a id="forgotLink">Mot de passe oublié ?</a>
+        <a id="forgotBtn">Mot de passe oublié ?</a>
     </div>
 </div>
 
@@ -464,34 +560,35 @@ async def serve_auth():
 var API = window.location.origin;
 
 // Onglets
-document.getElementById('tabLogin').onclick = function() {
-    document.getElementById('tabLogin').classList.add('active');
-    document.getElementById('tabRegister').classList.remove('active');
+document.getElementById('btnLogin').onclick = function() {
+    document.getElementById('btnLogin').classList.add('active');
+    document.getElementById('btnRegister').classList.remove('active');
     document.getElementById('loginForm').classList.add('active');
     document.getElementById('registerForm').classList.remove('active');
-    document.getElementById('msg').style.display = 'none';
+    document.getElementById('message').className = 'message';
+    document.getElementById('message').style.display = 'none';
 };
 
-document.getElementById('tabRegister').onclick = function() {
-    document.getElementById('tabRegister').classList.add('active');
-    document.getElementById('tabLogin').classList.remove('active');
+document.getElementById('btnRegister').onclick = function() {
+    document.getElementById('btnRegister').classList.add('active');
+    document.getElementById('btnLogin').classList.remove('active');
     document.getElementById('registerForm').classList.add('active');
     document.getElementById('loginForm').classList.remove('active');
-    document.getElementById('msg').style.display = 'none';
+    document.getElementById('message').className = 'message';
+    document.getElementById('message').style.display = 'none';
 };
 
-function showMessage(text, isError) {
-    var msgDiv = document.getElementById('msg');
-    msgDiv.textContent = text;
-    msgDiv.className = 'msg ' + (isError ? 'error' : 'success');
-    msgDiv.style.display = 'block';
+function showMessage(msg, isError) {
+    var msgDiv = document.getElementById('message');
+    msgDiv.textContent = msg;
+    msgDiv.className = 'message ' + (isError ? 'error' : 'success');
     setTimeout(function() {
-        msgDiv.style.display = 'none';
+        msgDiv.className = 'message';
     }, 3000);
 }
 
-// Inscription
-document.getElementById('doRegister').onclick = function() {
+// INSCRIPTION
+document.getElementById('submitRegister').onclick = function() {
     var name = document.getElementById('regName').value;
     var email = document.getElementById('regEmail').value;
     var phone = document.getElementById('regPhone').value;
@@ -507,12 +604,16 @@ document.getElementById('doRegister').onclick = function() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name, email: email, phone: phone, password: password })
     })
-    .then(function(res) { return res.json(); })
+    .then(function(response) { return response.json(); })
     .then(function(data) {
-        if (data.success) {
-            showMessage('Compte cree ! Connectez-vous', false);
-            document.getElementById('tabLogin').click();
-            document.getElementById('loginEmail').value = email;
+        if (data.success === true) {
+            showMessage('Compte cree ! Connectez-vous maintenant', false);
+            document.getElementById('btnLogin').click();
+            document.getElementById('email').value = email;
+            document.getElementById('regName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('regPassword').value = '';
         } else {
             showMessage(data.detail || 'Erreur lors de l\'inscription', true);
         }
@@ -522,10 +623,10 @@ document.getElementById('doRegister').onclick = function() {
     });
 };
 
-// Connexion
-document.getElementById('doLogin').onclick = function() {
-    var email = document.getElementById('loginEmail').value;
-    var password = document.getElementById('loginPassword').value;
+// CONNEXION
+document.getElementById('submitLogin').onclick = function() {
+    var email = document.getElementById('email').value;
+    var password = document.getElementById('password').value;
     
     if (!email || !password) {
         showMessage('Veuillez entrer email et mot de passe', true);
@@ -537,9 +638,9 @@ document.getElementById('doLogin').onclick = function() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email, password: password })
     })
-    .then(function(res) { return res.json(); })
+    .then(function(response) { return response.json(); })
     .then(function(data) {
-        if (data.success) {
+        if (data.success === true) {
             localStorage.setItem('userToken', data.token);
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userName', data.user.name);
@@ -554,7 +655,7 @@ document.getElementById('doLogin').onclick = function() {
 };
 
 // Mot de passe oublie
-document.getElementById('forgotLink').onclick = function() {
+document.getElementById('forgotBtn').onclick = function() {
     var email = prompt('Entrez votre email:');
     if (email) {
         fetch(API + '/api/auth/forgot-password', {
@@ -563,7 +664,7 @@ document.getElementById('forgotLink').onclick = function() {
             body: JSON.stringify({ email: email })
         })
         .then(function() {
-            alert('Un email vous a ete envoye si le compte existe');
+            alert('Si cet email existe, un lien vous a ete envoye');
         })
         .catch(function() {
             alert('Erreur');
