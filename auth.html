@@ -24,6 +24,7 @@
             max-width: 440px;
             overflow: hidden;
         }
+        [data-theme="dark"] .auth-container { background: #1a1f2e; }
         .auth-header {
             background: #021e79;
             padding: 30px;
@@ -46,6 +47,7 @@
             display: flex;
             border-bottom: 2px solid #eef2f6;
         }
+        [data-theme="dark"] .auth-tabs { border-bottom-color: #2a3040; }
         .auth-tab {
             flex: 1;
             padding: 15px;
@@ -55,11 +57,13 @@
             transition: all 0.3s;
             color: #707070;
         }
+        [data-theme="dark"] .auth-tab { color: #9a9ea6; }
         .auth-tab.active {
             color: #021e79;
             border-bottom: 2px solid #ffbf00;
             margin-bottom: -2px;
         }
+        [data-theme="dark"] .auth-tab.active { color: #ffbf00; }
         .auth-body {
             padding: 30px;
         }
@@ -79,6 +83,7 @@
             color: #212326;
             margin-bottom: 6px;
         }
+        [data-theme="dark"] .form-group label { color: #e4e6ea; }
         .form-group input {
             width: 100%;
             padding: 12px 15px;
@@ -87,10 +92,17 @@
             font-size: 15px;
             transition: all 0.3s;
             outline: none;
+            background: white;
+        }
+        [data-theme="dark"] .form-group input {
+            background: #0f1419;
+            border-color: #2a3040;
+            color: #e4e6ea;
         }
         .form-group input:focus {
             border-color: #021e79;
         }
+        [data-theme="dark"] .form-group input:focus { border-color: #ffbf00; }
         .btn-auth {
             width: 100%;
             padding: 14px;
@@ -133,10 +145,28 @@
             font-size: 12px;
             color: #707070;
         }
+        [data-theme="dark"] .auth-footer {
+            background: #0f1419;
+            color: #9a9ea6;
+        }
         .auth-footer a {
             color: #021e79;
             text-decoration: none;
             font-weight: 700;
+        }
+        [data-theme="dark"] .auth-footer a { color: #ffbf00; }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            color: white;
+            backdrop-filter: blur(5px);
         }
         @media (max-width: 480px) {
             .auth-container { margin: 20px; }
@@ -146,6 +176,8 @@
     </style>
 </head>
 <body>
+<button class="theme-toggle" id="themeToggle" aria-label="Mode sombre">🌙</button>
+
 <div class="auth-container">
     <div class="auth-header">
         <img src="logoonecca.png" alt="ONECCA" onerror="this.style.display='none'">
@@ -204,6 +236,21 @@
 
 <script>
 const API = window.location.origin;
+let theme = localStorage.getItem('theme') || 'light';
+document.documentElement.setAttribute('data-theme', theme);
+updateThemeIcon();
+
+function updateThemeIcon() {
+    const btn = document.getElementById('themeToggle');
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    updateThemeIcon();
+});
 
 // Gestion des onglets
 document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -256,9 +303,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             localStorage.setItem('userToken', data.token);
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userName', data.user.name);
+            localStorage.setItem('userPhone', data.user.phone || '');
             window.location.href = '/?login=success';
         } else {
-            showError(data.error || 'Email ou mot de passe incorrect');
+            showError(data.error || data.detail || 'Email ou mot de passe incorrect');
         }
     } catch (err) {
         showError('Erreur de connexion. Veuillez réessayer.');
@@ -296,7 +344,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
                 document.getElementById('loginEmail').value = email;
             }, 2000);
         } else {
-            showError(data.error || 'Erreur lors de l\'inscription');
+            showError(data.error || data.detail || 'Erreur lors de l\'inscription');
         }
     } catch (err) {
         showError('Erreur serveur. Veuillez réessayer.');
