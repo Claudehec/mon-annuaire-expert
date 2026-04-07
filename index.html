@@ -165,46 +165,6 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-icon:hover { background: rgba(255,255,255,0.15); }
 
-/* Boutons Connexion et Inscription */
-.auth-buttons {
-  display: flex;
-  gap: 10px;
-}
-.btn-auth {
-  padding: 8px 18px;
-  border-radius: 40px;
-  font-weight: 700;
-  font-size: var(--text-sm);
-  transition: all var(--transition);
-  cursor: pointer;
-  border: none;
-}
-.btn-login {
-  background: white;
-  color: var(--primary);
-}
-.btn-login:hover {
-  background: var(--accent);
-  color: var(--primary-dark);
-  transform: translateY(-1px);
-}
-.btn-register {
-  background: var(--accent);
-  color: var(--primary-dark);
-}
-.btn-register:hover {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
-}
-[data-theme="dark"] .btn-login {
-  background: #1a3599;
-  color: white;
-}
-[data-theme="dark"] .btn-login:hover {
-  background: var(--accent);
-  color: var(--primary-dark);
-}
-
 /* ===== ADMIN TOOLBAR ===== */
 .admin-toolbar {
   display: none;
@@ -1181,9 +1141,7 @@ a { color: inherit; text-decoration: none; }
   .charts-row { grid-template-columns: 1fr; }
   .results-bar { padding: 12px 16px 4px; }
   .stats-container { padding: 0 16px; }
-  .header-actions { gap: 8px; }
-  .auth-buttons { gap: 8px; }
-  .btn-auth { padding: 6px 12px; font-size: 12px; }
+  .header-actions { gap: 4px; }
   .modal-box { padding: 28px 20px; }
   .admin-toolbar-inner { padding: 8px 16px; gap: 10px; }
   .admin-toolbar-title { font-size: 12px; }
@@ -1235,11 +1193,8 @@ a { color: inherit; text-decoration: none; }
         <span id="userName" style="color: white; font-size: 14px; margin-right: 10px;"></span>
         <button id="logoutBtn" class="btn-icon" style="background: rgba(255,255,255,0.2);">🚪</button>
       </div>
-      <!-- Boutons Connexion et Inscription -->
-      <div class="auth-buttons">
-        <button id="loginBtn" class="btn-auth btn-login">🔐 Connexion</button>
-        <button id="registerBtn" class="btn-auth btn-register">📝 Inscription</button>
-      </div>
+      <!-- Bouton connexion (visible par défaut) -->
+      <a href="/auth.html" id="loginBtn" class="btn-icon" style="background: #ffbf00; color: #021e79;">Login🔐</a>
       <!-- Bouton thème -->
       <button class="btn-icon" data-theme-toggle>🌙</button>
     </div>
@@ -1512,17 +1467,7 @@ let RAW = { liberaux: [], societes: [], salaries: [], stagiaires: [] };
 let showContacts = false;
 let contactRequests = [];
 
-// ===== GESTION DES BOUTONS CONNEXION / INSCRIPTION =====
-// Redirection vers la page de connexion
-document.getElementById('loginBtn').addEventListener('click', function() {
-  window.location.href = '/connexion';
-});
-
-// Redirection vers la page d'inscription
-document.getElementById('registerBtn').addEventListener('click', function() {
-  window.location.href = '/inscription';
-});
-
+  // ===== GESTION UTILISATEUR =====
 // ===== GESTION UTILISATEUR =====
 let isUserLoggedIn = false;
 let currentUser = null;
@@ -1533,15 +1478,13 @@ function checkUserAuth() {
     
     const userMenu = document.getElementById('userMenu');
     const loginBtn = document.getElementById('loginBtn');
-    const registerBtn = document.getElementById('registerBtn');
     const userNameSpan = document.getElementById('userName');
     
-    if (token && userName && userMenu && loginBtn && registerBtn) {
+    if (token && userName && userMenu && loginBtn) {
         isUserLoggedIn = true;
         currentUser = { name: userName, email: localStorage.getItem('userEmail') };
         userMenu.style.display = 'block';
         loginBtn.style.display = 'none';
-        registerBtn.style.display = 'none';
         if (userNameSpan) userNameSpan.textContent = userName.split(' ')[0];
         // Les membres connectés voient les coordonnées
         showContacts = true;
@@ -1550,7 +1493,6 @@ function checkUserAuth() {
         currentUser = null;
         if (userMenu) userMenu.style.display = 'none';
         if (loginBtn) loginBtn.style.display = 'flex';
-        if (registerBtn) registerBtn.style.display = 'flex';
     }
 }
 
@@ -1574,15 +1516,28 @@ if (window.location.search.includes('login=success')) {
     checkUserAuth();
     window.history.replaceState({}, document.title, window.location.pathname);
 }
+// Modifier la fonction loadMembers pour prendre en compte l'auth utilisateur
+async function loadMembers() {
+  if (isAdmin) {
+    const data = await apiGet('/api/admin/members', true);
+    RAW = data.members || data;
+    showContacts = true;
+  } else {
+    const data = await apiGet('/api/members', false);
+    RAW = data.members || data;
+    // Si utilisateur connecté, afficher les coordonnées
+    showContacts = isUserLoggedIn || data.show_contacts || false;
+  }
+}
 
 // ===== DARK MODE =====
-const toggleTheme = document.querySelector('[data-theme-toggle]');
+const toggle = document.querySelector('[data-theme-toggle]');
 const htmlEl = document.documentElement;
 let theme = (window.matchMedia && matchMedia('(prefers-color-scheme:dark)').matches) ? 'dark' : 'light';
 htmlEl.setAttribute('data-theme', theme);
 updateToggleIcon();
 
-toggleTheme.addEventListener('click', () => {
+toggle.addEventListener('click', () => {
   theme = theme === 'dark' ? 'light' : 'dark';
   htmlEl.setAttribute('data-theme', theme);
   updateToggleIcon();
@@ -1590,10 +1545,10 @@ toggleTheme.addEventListener('click', () => {
 });
 
 function updateToggleIcon() {
-  toggleTheme.innerHTML = theme === 'dark'
+  toggle.innerHTML = theme === 'dark'
     ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
     : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-  toggleTheme.setAttribute('aria-label', theme === 'dark' ? 'Mode clair' : 'Mode sombre');
+  toggle.setAttribute('aria-label', theme === 'dark' ? 'Mode clair' : 'Mode sombre');
 }
 
 // ===== STATS TOGGLE =====
@@ -2310,5 +2265,66 @@ init();
 
 })();
 </script>
-</body>
+<script data-pplx-inline-edit>
+(function(){
+  if(window===window.top)return;
+  function inlineAll(orig,clone){
+    if(orig.nodeType!==1)return;
+    try{
+      var cs=getComputedStyle(orig);
+      var t='';
+      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
+      clone.style.cssText=t;
+    }catch(e){}
+    var oc=orig.children,cc=clone.children;
+    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
+  }
+  function stripExternal(clone){
+    var imgs=clone.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      var s=imgs[i].getAttribute('src');
+      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
+    }
+    var all=clone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var st=all[i].style.cssText;
+      if(st&&st.indexOf('url(')>=0){
+        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
+      }
+    }
+  }
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
+    var scrollX=window.scrollX||window.pageXOffset||0;
+    var scrollY=window.scrollY||window.pageYOffset||0;
+    var w=window.innerWidth,h=window.innerHeight;
+    try{
+      var clone=document.documentElement.cloneNode(true);
+      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
+      for(var i=0;i<rm.length;i++){rm[i].remove();}
+      inlineAll(document.documentElement,clone);
+      stripExternal(clone);
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
+        +'<foreignObject width="100%" height="100%">'
+        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
+        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
+        +html+'</div></div></foreignObject></svg>';
+      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0);
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.onerror=function(){
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.src=svgUrl;
+    }catch(err){
+      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+    }
+  });
+})();
+</script></body>
 </html>
