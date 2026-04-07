@@ -1194,7 +1194,57 @@ a { color: inherit; text-decoration: none; }
         <button id="logoutBtn" class="btn-icon" style="background: rgba(255,255,255,0.2);">🚪</button>
       </div>
       <!-- Bouton connexion (visible par défaut) -->
-      <a href="/auth.html" id="loginBtn" class="btn-icon" style="background: #ffbf00; color: #021e79;">Login🔐</a>
+      <a href="/auth.html" id="loginBtn" class="btn-user">
+    <div class="user-avatar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+        </svg>
+    </div>
+    <span>Se connecter</span>
+</a>
+
+<style>
+.btn-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px 8px 12px;
+    background: transparent;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 40px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 1.5px solid rgba(255,255,255,0.3);
+}
+
+.btn-user .user-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.btn-user:hover {
+    border-color: #ffbf00;
+    background: rgba(255,191,0,0.1);
+}
+
+.btn-user:hover .user-avatar {
+    background: #ffbf00;
+    color: #021e79;
+}
+
+[data-theme="dark"] .btn-user {
+    border-color: rgba(255,191,0,0.4);
+}
+</style>
       <!-- Bouton thème -->
       <button class="btn-icon" data-theme-toggle>🌙</button>
     </div>
