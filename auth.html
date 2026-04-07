@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Connexion SPARK</title>
+    <title>Connexion ONECCA</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -45,9 +45,16 @@
             cursor: pointer;
             margin-top: 10px;
             font-size: 16px;
+            transition: all 0.3s ease;
         }
         button:hover {
             background: #e6ac00;
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
         .tab {
             display: flex;
@@ -86,6 +93,11 @@
             color: #2e7d32;
             display: block;
         }
+        .msg.info {
+            background: #e3f2fd;
+            color: #1565c0;
+            display: block;
+        }
         .footer {
             text-align: center;
             margin-top: 20px;
@@ -96,11 +108,36 @@
             cursor: pointer;
             text-decoration: none;
         }
+        .back-home {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .back-home a {
+            color: #64748b;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .back-home a:hover {
+            color: #ffbf00;
+        }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
 <div class="box">
-    <h2>SPARK</h2>
+    <h2>🔐 ONECCA</h2>
     
     <div class="tab">
         <button id="btnLogin" class="active">Connexion</button>
@@ -110,120 +147,258 @@
     <div id="msg" class="msg"></div>
     
     <div id="loginForm" class="form active">
-        <input type="email" id="loginEmail" placeholder="Email">
-        <input type="password" id="loginPassword" placeholder="Mot de passe">
+        <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+        <input type="password" id="loginPassword" placeholder="Mot de passe" autocomplete="current-password">
         <button id="doLogin">Se connecter</button>
     </div>
     
     <div id="registerForm" class="form">
-        <input type="text" id="regName" placeholder="Nom complet">
-        <input type="email" id="regEmail" placeholder="Email">
-        <input type="password" id="regPassword" placeholder="Mot de passe (6+ caractères)">
+        <input type="text" id="regName" placeholder="Nom complet" autocomplete="name">
+        <input type="email" id="regEmail" placeholder="Email" autocomplete="email">
+        <input type="password" id="regPassword" placeholder="Mot de passe (6+ caractères)" autocomplete="new-password">
         <button id="doRegister">Créer mon compte</button>
     </div>
     
     <div class="footer">
         <a id="forgotLink">Mot de passe oublié ?</a>
     </div>
+    
+    <div class="back-home">
+        <a href="/">← Retour à l'annuaire</a>
+    </div>
 </div>
 
 <script>
 const API = window.location.origin;
 
+// Éléments DOM
+const btnLogin = document.getElementById('btnLogin');
+const btnRegister = document.getElementById('btnRegister');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const msgDiv = document.getElementById('msg');
+const doLoginBtn = document.getElementById('doLogin');
+const doRegisterBtn = document.getElementById('doRegister');
+
 // Onglets
-document.getElementById('btnLogin').onclick = () => {
-    document.getElementById('btnLogin').classList.add('active');
-    document.getElementById('btnRegister').classList.remove('active');
-    document.getElementById('loginForm').classList.add('active');
-    document.getElementById('registerForm').classList.remove('active');
-    document.getElementById('msg').className = 'msg';
-    document.getElementById('msg').style.display = 'none';
+btnLogin.onclick = () => {
+    btnLogin.classList.add('active');
+    btnRegister.classList.remove('active');
+    loginForm.classList.add('active');
+    registerForm.classList.remove('active');
+    msgDiv.className = 'msg';
+    clearMessage();
 };
 
-document.getElementById('btnRegister').onclick = () => {
-    document.getElementById('btnRegister').classList.add('active');
-    document.getElementById('btnLogin').classList.remove('active');
-    document.getElementById('registerForm').classList.add('active');
-    document.getElementById('loginForm').classList.remove('active');
-    document.getElementById('msg').className = 'msg';
-    document.getElementById('msg').style.display = 'none';
+btnRegister.onclick = () => {
+    btnRegister.classList.add('active');
+    btnLogin.classList.remove('active');
+    registerForm.classList.add('active');
+    loginForm.classList.remove('active');
+    msgDiv.className = 'msg';
+    clearMessage();
 };
 
-function showMessage(text, isError) {
-    const msg = document.getElementById('msg');
-    msg.textContent = text;
-    msg.className = 'msg ' + (isError ? 'error' : 'success');
+function clearMessage() {
+    msgDiv.style.display = 'none';
+    msgDiv.textContent = '';
+}
+
+function showMessage(text, isError = false, isInfo = false) {
+    msgDiv.textContent = text;
+    if (isError) {
+        msgDiv.className = 'msg error';
+    } else if (isInfo) {
+        msgDiv.className = 'msg info';
+    } else {
+        msgDiv.className = 'msg success';
+    }
+    msgDiv.style.display = 'block';
     setTimeout(() => {
-        msg.className = 'msg';
-    }, 3000);
+        if (msgDiv.textContent === text) {
+            msgDiv.className = 'msg';
+            msgDiv.style.display = 'none';
+        }
+    }, 4000);
+}
+
+function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner"></span> Chargement...';
+    } else {
+        button.disabled = false;
+        button.innerHTML = button.id === 'doLogin' ? 'Se connecter' : 'Créer mon compte';
+    }
+}
+
+// Vérifier si déjà connecté
+function checkAlreadyLoggedIn() {
+    const token = localStorage.getItem('userToken');
+    if (token) {
+        showMessage('Vous êtes déjà connecté ! Redirection...', false, true);
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1500);
+        return true;
+    }
+    return false;
 }
 
 // INSCRIPTION
-document.getElementById('doRegister').onclick = async () => {
-    const name = document.getElementById('regName').value;
-    const email = document.getElementById('regEmail').value;
+doRegisterBtn.onclick = async () => {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
     
-    if (!name || !email || password.length < 6) {
-        showMessage('Remplissez tous les champs (mot de passe 6+ caractères)', true);
+    // Validation
+    if (!name) {
+        showMessage('Veuillez entrer votre nom complet', true);
+        return;
+    }
+    if (!email) {
+        showMessage('Veuillez entrer votre email', true);
+        return;
+    }
+    if (!email.includes('@')) {
+        showMessage('Veuillez entrer un email valide', true);
+        return;
+    }
+    if (password.length < 6) {
+        showMessage('Le mot de passe doit contenir au moins 6 caractères', true);
         return;
     }
     
+    setButtonLoading(doRegisterBtn, true);
+    
     try {
+        console.log('📝 Tentative d\'inscription:', { name, email });
+        
         const res = await fetch(API + '/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, phone: '', password })
         });
-        const data = await res.json();
         
-        if (data.success === true) {
-            showMessage('Compte créé ! Connectez-vous', false);
-            document.getElementById('btnLogin').click();
+        const data = await res.json();
+        console.log('📝 Réponse inscription:', data);
+        
+        if (res.ok && data.success === true) {
+            showMessage('✅ Compte créé avec succès ! Connectez-vous maintenant', false);
+            // Réinitialiser le formulaire
+            document.getElementById('regName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPassword').value = '';
+            // Basculer vers l'onglet connexion
+            btnLogin.click();
             document.getElementById('loginEmail').value = email;
         } else {
-            showMessage(data.detail || 'Erreur lors de l\'inscription', true);
+            const errorMsg = data.detail || 'Erreur lors de l\'inscription';
+            showMessage('❌ ' + errorMsg, true);
         }
     } catch (err) {
-        showMessage('Erreur serveur', true);
+        console.error('❌ Erreur réseau inscription:', err);
+        showMessage('❌ Impossible de contacter le serveur. Vérifiez que le serveur est démarré.', true);
+    } finally {
+        setButtonLoading(doRegisterBtn, false);
     }
 };
 
 // CONNEXION
-document.getElementById('doLogin').onclick = async () => {
-    const email = document.getElementById('loginEmail').value;
+doLoginBtn.onclick = async () => {
+    const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     
-    if (!email || !password) {
-        showMessage('Veuillez entrer email et mot de passe', true);
+    if (!email) {
+        showMessage('Veuillez entrer votre email', true);
+        return;
+    }
+    if (!password) {
+        showMessage('Veuillez entrer votre mot de passe', true);
         return;
     }
     
+    setButtonLoading(doLoginBtn, true);
+    
     try {
+        console.log('🔐 Tentative de connexion:', { email });
+        
         const res = await fetch(API + '/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
-        const data = await res.json();
         
-        if (data.success === true) {
+        const data = await res.json();
+        console.log('🔐 Réponse connexion:', data);
+        
+        if (res.ok && data.success === true) {
+            // Sauvegarde des données
             localStorage.setItem('userToken', data.token);
             localStorage.setItem('userEmail', data.user.email);
             localStorage.setItem('userName', data.user.name);
-            window.location.href = '/?login=success';
+            localStorage.setItem('userPhone', data.user.phone || '');
+            localStorage.setItem('userId', data.user.id);
+            
+            console.log('✅ Connexion réussie, données sauvegardées');
+            console.log('   - Token:', data.token.substring(0, 20) + '...');
+            console.log('   - Nom:', data.user.name);
+            console.log('   - Email:', data.user.email);
+            
+            showMessage('✅ Connexion réussie ! Redirection...', false);
+            
+            setTimeout(() => {
+                window.location.href = '/?login=success';
+            }, 1000);
         } else {
-            showMessage(data.detail || 'Email ou mot de passe incorrect', true);
+            const errorMsg = data.detail || 'Email ou mot de passe incorrect';
+            showMessage('❌ ' + errorMsg, true);
+            document.getElementById('loginPassword').value = '';
         }
     } catch (err) {
-        showMessage('Erreur de connexion', true);
+        console.error('❌ Erreur réseau connexion:', err);
+        showMessage('❌ Impossible de contacter le serveur. Vérifiez que le serveur est démarré sur le port 8000.', true);
+    } finally {
+        setButtonLoading(doLoginBtn, false);
     }
 };
 
 // Mot de passe oublié
 document.getElementById('forgotLink').onclick = () => {
-    alert('Contactez l\'administrateur pour réinitialiser votre mot de passe.');
+    const email = document.getElementById('loginEmail').value;
+    if (email) {
+        showMessage(`📧 Un email de réinitialisation sera envoyé à ${email} (fonctionnalité à venir)`, false, true);
+    } else {
+        showMessage('📧 Veuillez entrer votre email ci-dessus pour réinitialiser votre mot de passe', false, true);
+    }
 };
+
+// Vérifier l'état de connexion au chargement
+checkAlreadyLoggedIn();
+
+// Permettre la validation avec la touche Entrée
+document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') doLoginBtn.click();
+});
+document.getElementById('regPassword').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') doRegisterBtn.click();
+});
+
+// Test de connexion au serveur au chargement
+async function testServerConnection() {
+    try {
+        const res = await fetch(API + '/api/members');
+        if (res.ok) {
+            console.log('✅ Serveur accessible');
+        } else {
+            console.warn('⚠️ Serveur répond mais avec erreur:', res.status);
+        }
+    } catch (err) {
+        console.error('❌ Serveur inaccessible:', err);
+        showMessage('⚠️ Impossible de contacter le serveur. Vérifiez que le serveur est démarré (python server_api.py)', true);
+    }
+}
+testServerConnection();
 </script>
 </body>
 </html>
