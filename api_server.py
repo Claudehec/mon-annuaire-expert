@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """ONECCA Directory API Server — FastAPI on port 8000."""
+import uvicorn
 import sqlite3
 import json
 import hashlib
@@ -281,6 +282,25 @@ async def read_root():
 async def read_index():
     with open("index.html", "r", encoding="utf-8") as f:
         return f.read()
+
+@app.get("/auth.html", response_class=HTMLResponse)
+async def serve_auth():
+    try:
+        with open("auth.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return HTMLResponse(content="""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Auth</title><meta charset="UTF-8"></head>
+        <body style="font-family:Arial;padding:20px">
+        <h2>Page d'authentification</h2>
+        <p>Le fichier auth.html n'a pas encore été créé.</p>
+        <p>Veuillez créer le fichier auth.html à la racine du projet.</p>
+        <a href="/">Retour à l'accueil</a>
+        </body>
+        </html>
+        """, status_code=404)
 
 # ===== AUTHENTIFICATION UTILISATEURS =====
 import hashlib
